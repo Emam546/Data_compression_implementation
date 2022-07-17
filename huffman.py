@@ -116,7 +116,7 @@ def __main():
     # #__test()
     retransfer("./text_resultfile.txt","final_result.txt")
 if __name__ == "__main__":
-    __test()
+    __main()
     
     
     
