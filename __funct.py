@@ -1,5 +1,5 @@
-from Binary_tree.Tree import BST, Basic_Tree
-from typing import *
+from Binary_tree.Tree import Basic_Tree
+from inti_file import *
 from random import randint
 import os,json
 from pycv2.tools.utils import createProgressBar,progressBar
@@ -21,9 +21,13 @@ class HuffmanTree(Basic_Tree):
         if id(node.parent.right)==id(node):
             return HuffmanTree._parent(node.parent,"0"+orgbyte)
       
-            
-   
-        
+
+
+    
+    
+    
+    
+# ensure it is byte representatio
 def get_codec(data: Iterable[int])->dict:
     propabilites = dict()
     def add(byte: bytes):
@@ -107,12 +111,29 @@ def retransfer(data:Iterable[int],codec:dict)-> bytes:
         print(f"the file ended with last_code {last_code}")
     print("DECODING FINISNHED PROPBABLY") 
 
+
+
+
 def _getData(file)->int:
-    
     with open(file,"rb") as f:
         for _ in progressBar(range(os.stat(file).st_size)):
             byte=f.read(1)
             yield ord(byte)
+         
+         
+def transferData_file(file,resultfile,codec:dict=None):
+    assert os.path.isfile(file) and resultfile!=file,"the orginal file and resultfile must be no same"
+    codec=codec if codec else get_codec(_getData(file))
+    
+    
+    with open(resultfile,"wb",buffering=9) as resultf:
+        for byte in transferData(_getData(file),codec):
+            resultf.write(byte)
+    with open(f"{resultfile}.keys","w") as f:
+        json.dump(codec,f)
+    result_size=os.stat(resultfile).st_size
+    org_size=os.stat(file).st_size
+    print(f"the File redced by {round(100-(result_size/org_size)*100,2)}%")
 def retransfer_file(file,result_file):
     assert file!=result_file,"the result file must be another file"
     codecsFile=f"{file}.keys"
@@ -124,20 +145,7 @@ def retransfer_file(file,result_file):
     with open(result_file,"wb",buffering=9) as resultFile:
         for byte in retransfer(_getData(file),codec):
             resultFile.write(byte)
-            
-         
-def transferData_file(file,resultfile,codec:dict=None):
-    assert resultfile!=file,"the orginal file and resultfile must be no same"
-    codec=codec if codec else get_codec(_getData(file))
-    with open(resultfile,"wb",buffering=9) as resultf:
-        for byte in transferData(_getData(file),codec):
-            resultf.write(byte)
-    with open(f"{resultfile}.keys","w") as f:
-        json.dump(codec,f)
-    result_size=os.stat(resultfile).st_size
-    org_size=os.stat(file).st_size
-    print(f"the File redced by {round(100-(result_size/org_size)*100,2)}%")
-
+   
 def __main():
     transferData_file("./test_text.txt","./text_resultfile.txt")
     # #__test()
@@ -152,6 +160,7 @@ def test_longCompression():
     file_name=r"G:\Videos\[EgyBest].District.9.2009.BluRay.240p.x264.mp4"
     compress_path=os.path.splitext(file_name)[1]+'.huf'
     result_file="res.py"
+
 def __test_encding():
     codec=list(get_codec(_getData("./test_text.txt")).values())
     for code in codec:
