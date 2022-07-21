@@ -2,7 +2,7 @@ from Binary_tree.Tree import BST, Basic_Tree
 from typing import *
 from random import randint
 import os,json
-from pycv2.tools.utils import createProgressBar
+from pycv2.tools.utils import createProgressBar,progressBar
 class HuffmanTree(Basic_Tree):
     @property
     def repreBits(self):
@@ -110,7 +110,7 @@ def retransfer(data:Iterable[int],codec:dict)-> bytes:
 def _getData(file)->int:
     
     with open(file,"rb") as f:
-        for _ in progressbar(range(os.stat(file).st_size)):
+        for _ in progressBar(range(os.stat(file).st_size)):
             byte=f.read(1)
             yield ord(byte)
 def retransfer_file(file,result_file):
