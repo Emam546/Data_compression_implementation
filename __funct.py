@@ -1,5 +1,5 @@
 from Binary_tree.Tree import Basic_Tree
-from inti_file import *
+from init_file import *
 from random import randint
 import os,json
 from pycv2.tools.utils import createProgressBar,progressBar
