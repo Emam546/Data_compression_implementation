@@ -1,7 +1,7 @@
 from Binary_tree.Tree import Basic_Tree
 from init_file import *
 from random import randint
-import os,json
+import os,io,inspect
 from pycv2.tools.utils import createProgressBar,progressBar
 class HuffmanTree(Basic_Tree):
     @property
@@ -20,13 +20,7 @@ class HuffmanTree(Basic_Tree):
             return HuffmanTree._parent(node.parent,"1"+orgbyte)
         if id(node.parent.right)==id(node):
             return HuffmanTree._parent(node.parent,"0"+orgbyte)
-      
 
-
-    
-    
-    
-    
 # ensure it is byte representatio
 def get_codec(data: Iterable[int])->dict:
     propabilites = dict()
@@ -69,7 +63,6 @@ def transferData(data:Iterable[int],codec:dict=None)-> bytes:
         yield bytes([byte_code])
     while code:
         if len(code)<8:
-            print("LEAST",code)
             bitsCodecs=list(codec.values())
             while True:
                 newcode=bin(randint(0,255))[2:]
@@ -82,7 +75,6 @@ def transferData(data:Iterable[int],codec:dict=None)-> bytes:
                     break
 
             code=code+newcode
-            print(f"final byte {code}")
         byte_code=int(code[:8],2)
         code=code[8:]
         yield bytes([byte_code])
@@ -107,68 +99,148 @@ def retransfer(data:Iterable[int],codec:dict)-> bytes:
     for byte in data:
         last_code,resBytes=search(byte,last_code)
         yield resBytes
-    if last_code:
-        print(f"the file ended with last_code {last_code}")
     print("DECODING FINISNHED PROPBABLY") 
 
 
 
-
-def _getData(file)->int:
+def _getDataBytes(file,tickEvery=0.2)->bytes:
+    complete_size=os.stat(file).st_size
+    tickEvery=round((tickEvery*complete_size)/100)
+    progressBar=createProgressBar(total=complete_size)
     with open(file,"rb") as f:
-        for _ in progressBar(range(os.stat(file).st_size)):
-            byte=f.read(1)
-            yield ord(byte)
-         
-         
-def transferData_file(file,resultfile,codec:dict=None):
-    assert os.path.isfile(file) and resultfile!=file,"the orginal file and resultfile must be no same"
-    codec=codec if codec else get_codec(_getData(file))
+        for curr in range(complete_size):
+            if (curr%tickEvery)==0:
+                progressBar(curr)
+            yield f.read(1)
+    progressBar(complete_size)
+    print()
+def _getData(file)->int:
+    for byte in _getDataBytes(file):
+        yield ord(byte)
+
+def lastPath(funct):
+    LastPath=os.path.abspath(os.curdir)
+    if inspect.isgeneratorfunction(funct):
+        def adder(*args,**kwargs):
+            for data in funct(*args,**kwargs):
+                yield data
+            os.chdir(LastPath)
+    else:
+        def adder(*args,**kwargs):
+            res=funct(*args,**kwargs)
+            os.chdir(LastPath)
+            return res
+    return adder
+@lastPath 
+def getALLFiles(dirFile,root=True):
+    if root:
+        os.chdir(os.path.dirname(dirFile))
+        dirFile=os.path.basename(dirFile)
+    if not os.path.isdir(dirFile):
+        yield dirFile
+        raise StopIteration
     
+    for child in os.listdir(dirFile):
+        childPath=os.path.join(dirFile,child)
+        if os.path.isdir(childPath):
+            for minchild in getALLFiles(childPath,False):
+                yield minchild
+        elif os.path.isfile(childPath):
+            yield childPath
+        else:
+            raise "THE PATH IS NOT COMPRESSABLE"
+@lastPath
+def getAlldirs(dirFile,root=True):
+    if root:
+        os.chdir(os.path.dirname(dirFile))
+        dirFile=os.path.basename(dirFile)
+    if not os.path.isdir(dirFile): 
+        raise StopIteration
     
-    with open(resultfile,"wb",buffering=9) as resultf:
-        for byte in transferData(_getData(file),codec):
-            resultf.write(byte)
-    with open(f"{resultfile}.keys","w") as f:
-        json.dump(codec,f)
-    result_size=os.stat(resultfile).st_size
-    org_size=os.stat(file).st_size
-    print(f"the File redced by {round(100-(result_size/org_size)*100,2)}%")
-def retransfer_file(file,result_file):
-    assert file!=result_file,"the result file must be another file"
-    codecsFile=f"{file}.keys"
-    #assert not os.path.exists(codecsFile),f"the keys of the {codecsFile} doesn't exists"
-    with open(codecsFile,"r") as f:
-        codec=json.load(f)
+    for child in os.listdir(dirFile):
+        childPath=os.path.join(dirFile,child)
+        if os.path.isdir(childPath):
+            for minchild in getAlldirs(childPath,False):
+                yield minchild  
+
+
+def transferData_file(files:str,resultfile,codec:dict=None):
+    files=files if isinstance(files,list) else [files]  
+    assert( not resultfile in files) \
+        ,"the orginal file and resultfile must be no same"
+    org_size=0
+    
+    with open(resultfile,"wb") as resultf:
+        resultf.write((0).to_bytes(2,"big"))
+        n=0
+        for dirFile in files:
+            for dir in getAlldirs(dirFile):
+                resultf.write(InitDir(dir))
+                n+=1
+        resultf.seek(0)
+        resultf.write(n.to_bytes(2,"big"))
+        resultf.seek(0,io.SEEK_END)
         
+        for dirFile in files:
+            cursor_now=resultf.tell()
+            filesdir=getALLFiles(dirFile)
+            filesCompletePath=getALLFiles(dirFile,False)
+            for file,fileName in zip(filesCompletePath,filesdir):
+                org_size+=os.stat(file).st_size
+                codec=codec if codec else get_codec(_getData(file))
+                sizeofbytes=0
+                addedBytes=0
+                for byte in encodeInitCompressData(0,fileName,codec):
+                    resultf.write(byte)
+                    addedBytes+=len(byte)
+                for byte in transferData(_getData(file),codec):
+                    resultf.write(byte)
+                    sizeofbytes+=len(byte)
+                addedBytes+=sizeofbytes
+                resultf.seek(cursor_now)
+                resultf.write(sizeofbytes.to_bytes(NUM_INIT_SIZE_BYTES,"big"))
+                resultf.seek(0,io.SEEK_END)
+       
+    
+    result_size=os.stat(resultfile).st_size
+    print(f"the File redced by {round(100-(result_size/org_size)*100,2)}%")
+@lastPath
+def retransfer_file(file,resultPath="."):
+    data=_getDataBytes(os.path.abspath(file))
+    
+    os.chdir(resultPath)
+    for dir in decodeInitDirFile(data):
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+    while True:
+        try:
+            dataSize,fileName,codec=decodeInitCompressData(data)
+            encodedData=(ord(next(data)) for _ in range(dataSize))
+            with open(fileName,"wb") as resultf:
+                for byte in retransfer(encodedData,codec):
+                    resultf.write(byte)
+        except StopIteration:
+            break
+    
+def encodeFile(files:List[str],resultFile=None):
+    assert isinstance(files,list),"THE FILES MUST BE A LIST"
+    if not resultFile:
+        resultFile=os.path.splitext(os.path.basename(files[0]))[0]+".huf"
+    transferData_file([os.path.abspath(file)for file in files],resultFile)
+    return resultFile
 
-    with open(result_file,"wb",buffering=9) as resultFile:
-        for byte in retransfer(_getData(file),codec):
-            resultFile.write(byte)
-   
 def __main():
-    transferData_file("./test_text.txt","./text_resultfile.txt")
-    # #__test()
-    retransfer_file("./text_resultfile.txt","final_result.txt")
-    with open("final_result.txt","r") as f1:
-        with open("./test_text.txt","r") as f2:
-            state=f1.read()==f2.read()
-            if not state:
-                print("files are not the same")
-def test_longCompression():
-    import os
-    file_name=r"G:\Videos\[EgyBest].District.9.2009.BluRay.240p.x264.mp4"
-    compress_path=os.path.splitext(file_name)[1]+'.huf'
-    result_file="res.py"
+    os.chdir("./testing")
+    resultFile=encodeFile(["test_text.txt"])
+    retransfer_file(resultFile)
+    
+def __test_longCompression():
+    file_name=r"G:\Videos\[EgyBest].Gravity.2013.BluRay.240p.x264.mp4"
+    resultFile=encodeFile([file_name],"./testing/resultVideo.huf")
+    retransfer_file(resultFile,"./testing/")
 
-def __test_encding():
-    codec=list(get_codec(_getData("./test_text.txt")).values())
-    for code in codec:
-        start=0
-        for end in range(len(code)):
-            code
 if __name__ == "__main__":
-    __main()
+    __test_longCompression()
     
     
     
