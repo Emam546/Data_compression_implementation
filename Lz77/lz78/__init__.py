@@ -33,7 +33,7 @@ def transferData(data:Iterable[bytes],presentByte=2,storedDict=None):
 
 
     #print(list(map(lambda x:x,storedDict.keys())))
-def retransferData(data:Iterable[bytes]):
+def retransferData(data:Iterable[bytes],presentByte=3):
     storedDict=[b""]
     
     while True:
@@ -94,7 +94,7 @@ def retransferDataFile(file,resultPath="."):
         try:
             dataSize,fileName=decodeInit(data)
             presentNum=int.from_bytes(next(data))
-            print(f"THE PRESENTING NUM OF BYTES IS EQUAL To {presentnum}")
+            print(f"THE PRESENTING NUM OF BYTES IS EQUAL To {presentNum}")
             
             encodedData=(next(data) for _ in range(dataSize))
             with open(fileName,"wb") as resultf:
