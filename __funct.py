@@ -67,6 +67,7 @@ def getAlldirs(dirFile,root=True):
         if os.path.isdir(childPath):
             for minchild in getAlldirs(childPath,False):
                 yield minchild  
+            yield childPath
 def encodeInit(size:int,file:str):
     assert MAX_SIZE>size ,"THE FILE THAT YOU WOULD COMPRESS REACHS THE MAXIMUM SIZE"
     express_size=size.to_bytes(NUM_INIT_SIZE_BYTES,"big")
@@ -100,12 +101,12 @@ def InitDir(dir:str):
     numbytes=numbytes.to_bytes(2,"big")
     return numbytes+file_path_bytes
 def WriteAllDirs(files:Iterable[str]):
-        n=0
-        AllDirs=b""
-        for dirFile in files:
-            for dir in getAlldirs(dirFile):
-                AllDirs+=InitDir(dir)
-                n+=1
-        return n.to_bytes(2,"big")+AllDirs
+    n=0
+    AllDirs=b""
+    for dirFile in files:
+        for dir in getAlldirs(dirFile):
+            AllDirs+=InitDir(dir)
+            n+=1
+    return n.to_bytes(2,"big")+AllDirs
         
     

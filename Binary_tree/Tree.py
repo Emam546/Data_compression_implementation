@@ -38,7 +38,7 @@ class Basic_Tree():
             return self
         if not isinstance(self.left,Basic_Tree) and not isinstance(self.right,Basic_Tree):
             return self.key
-        return BST.to_tuple(self.left),  self.key, BST.to_tuple(self.right)
+        return Basic_Tree.to_tuple(self.left),  self.key, BST.to_tuple(self.right)
     
     def __str__(self):
         return "BinaryTree <{}>".format(self.to_tuple())

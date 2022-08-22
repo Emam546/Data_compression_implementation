@@ -3,6 +3,7 @@ from huff.init_file import *
 from random import randint
 import os,io,inspect
 from __funct import *
+
 class HuffmanTree(Basic_Tree):
     @property
     def repreBits(self):
@@ -32,6 +33,10 @@ def get_codec(data: Iterable[int])->dict:
     print("READING THE FILE")
     for byte in data:
         add(byte)
+    if not len(propabilites):
+        return {};
+    elif len(propabilites)==1:
+        return {list(propabilites.keys())[0]:"0"}
     size=sum(propabilites.values())
     bytesprop=list(map(lambda item:HuffmanTree(item[1]/size,value=item[0]),propabilites.items()))
     props=bytesprop.copy()
@@ -46,6 +51,7 @@ def get_codec(data: Iterable[int])->dict:
         props.append(newNode)
     codec=dict()
     entropy=0
+    
     for prop in bytesprop:
         codec[prop.value]=bits=prop.repreBits
         entropy+=len(bits)*prop.key
