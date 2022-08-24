@@ -4,7 +4,7 @@ import os,inspect
 from typing import *
 MAXIMUMPATHNUM=2**(8*2)
 ENCODING="utf-8"
-NUM_INIT_SIZE_BYTES=6
+NUM_INIT_SIZE_BYTES=8
 MAX_SIZE=2**(NUM_INIT_SIZE_BYTES*8)
 def getDataBytes(file,tickEvery=0.2)->bytes:
     complete_size=os.stat(file).st_size
@@ -53,7 +53,7 @@ def getALLFiles(dirFile,root=True):
         elif os.path.isfile(childPath):
             yield childPath
         else:
-            raise "THE PATH IS NOT COMPRESSABLE"
+            raise "THE PATH IS NOT COMPRESSIBLE"
 @lastPath
 def getAlldirs(dirFile,root=True):
     if root:

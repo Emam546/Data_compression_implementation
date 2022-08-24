@@ -105,7 +105,7 @@ def retransferData(data:Iterable[int],codec:dict)-> bytes:
     for byte in data:
         last_code,resBytes=search(byte,last_code)
         yield resBytes
-    print("DECODING FINISNHED PROPBABLY") 
+    print("DECODING FINISHED PROBABLY") 
 
 
 
@@ -125,24 +125,19 @@ def transferDataFile(files:str,resultfile,codec:dict=None):
                 org_size+=os.stat(file).st_size
                 codec=codec if codec else get_codec(getData(file))
                 sizeofbytes=0
-                addedBytes=0
                 for byte in encodeInitCompressData(0,fileName,codec):
                     resultf.write(byte)
-                    addedBytes+=len(byte)
                 for byte in transferData(getData(file),codec):
                     resultf.write(byte)
                     sizeofbytes+=len(byte)
-                addedBytes+=sizeofbytes
+
                 resultf.seek(cursor_now)
                 resultf.write(sizeofbytes.to_bytes(NUM_INIT_SIZE_BYTES,"big"))
                 resultf.seek(0,io.SEEK_END)
-       
-    
     result_size=os.stat(resultfile).st_size
-    print(f"the File redced by {round(100-(result_size/org_size)*100,2)}%")
+    print(f"the File reduced by {round(100-(result_size/org_size)*100,2)}%")
 @lastPath
-def retransferDataFile(file,resultPath="."):
-    data=getDataBytes(os.path.abspath(file))
+def retransferDataFile(data: Iterable[bytes],resultPath="."):
     os.chdir(resultPath)
     for dir in decodeInitDirFile(data):
         if not os.path.exists(dir):
@@ -164,15 +159,3 @@ def encodeFile(files:List[str],resultFile=None):
     transferDataFile([os.path.abspath(file)for file in files],resultFile)
     return resultFile
 
-def __main():
-    os.chdir("./testing")
-    resultFile=encodeFile(["test_text.txt"])
-    retransferDataFile(resultFile)
-    
-def __test_longCompression():
-    file_name=r"G:\Videos\[EgyBest].Gravity.2013.BluRay.240p.x264.mp4"
-    resultFile=encodeFile([file_name],"./testing/resultVideo.huf")
-    retransferDataFile(resultFile,"./testing/")
-
-if __name__ == "__main__":
-    __test_longCompression()
